@@ -7,11 +7,21 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.provider.Settings
+import android.view.View
+import androidx.activity.enableEdgeToEdge
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 
 class MainActivity : TauriActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
-    // sem enableEdgeToEdge(): a UI web não reserva espaço para a barra de status
+    enableEdgeToEdge()
     super.onCreate(savedInstanceState)
+    // Android 15+ desenha sempre por baixo das barras do sistema: reserva o espaço delas
+    ViewCompat.setOnApplyWindowInsetsListener(findViewById<View>(android.R.id.content)) { v, insets ->
+      val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout())
+      v.setPadding(bars.left, bars.top, bars.right, bars.bottom)
+      WindowInsetsCompat.CONSUMED
+    }
     askStorageAccess()
   }
 

@@ -159,7 +159,7 @@ Cada jogo é procurado em: cada instalação que casa (Steam id, GOG id, nome da
 - No Android o app não baixa o manifesto de PC: usa só `extras.yaml` (`manifest::with_extras(Manifest::new())`).
 - Dados do app: `app.path().app_data_dir()`; backups em `/storage/emulated/0/UltimateGameSaver` (visível para Syncthing/Drive).
 - Sem bandeja, monitor de processos nem seletor de pasta (`#[cfg(desktop)]`); a UI esconde pastas raiz, troca de pasta de backup e manifesto (`Settings.mobile`). O plugin de diálogo é dependência só de desktop.
-- Sem `enableEdgeToEdge()` na `MainActivity` — a página não reserva espaço para a barra de status.
+- Android 15+ força edge-to-edge: a `MainActivity` aplica as margens das barras do sistema como padding da view (`setOnApplyWindowInsetsListener`); sem isso o cabeçalho fica sob a barra de status.
 - Build (Windows): `$env:ANDROID_HOME="$env:LOCALAPPDATA\Android\Sdk"; $env:NDK_HOME="$env:ANDROID_HOME\ndk\<versão>"; cd app/src-tauri; npm install; npm run tauri -- android build --debug --apk --target aarch64` → `gen/android/app/build/outputs/apk/universal/debug/app-universal-debug.apk` (~170 MB em debug).
 - Teste no aparelho: `adb install -r <apk>`; liberar permissão sem tocar na tela: `adb shell appops set io.github.walterfr.ultimategamesaver MANAGE_EXTERNAL_STORAGE allow`.
 - Aviso inofensivo no build: "Could not close incremental caches" do Kotlin (projeto em `X:` e cache do cargo em `C:`).
