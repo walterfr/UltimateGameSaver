@@ -358,7 +358,7 @@ ultimate-game-saver/            (workspace Cargo)
 | Fase | Entrega |
 |---|---|
 | 1 ✔ | `core` + `cli` no Windows: manifesto, Steam/Epic/GOG, backup/restore, teste de ida e volta |
-| 2 | Linux: XDG, Flatpak, Proton, Heroic/Lutris |
+| 2 ✔ | Linux: XDG, Flatpak, Proton, Heroic/Lutris, AppImage/deb, CI Ubuntu (falta teste em máquina real) |
 | 3 ✔ | `core/data/extras.yaml` (emuladores + ports, um arquivo só), pastas raiz (`ugs root add`), detecção por executável, pasta custom lida do config, saves ao lado da ROM |
 | 4 ✔ | App Tauri desktop (`app/`): lista, um clique, bandeja, backup ao fechar o jogo. Rodar: `cargo run -p ugs-app` |
 | 5 | Android: plugin SAF, emuladores Android, depois Shizuku |

@@ -13,7 +13,7 @@ Alvo: Windows (pronto), Linux e Android (planejados). Repo: https://github.com/w
 | Fase | Status |
 |---|---|
 | 1. Motor + CLI no Windows (manifesto, Steam/Epic/GOG, backup/restore) | ✔ |
-| 2. Linux | **próxima** |
+| 2. Linux (Steam/Flatpak, Proton, Heroic, Lutris, AppImage/deb) | ✔ no código e no CI — **falta testar em máquina Linux real** |
 | 3. Emuladores e ports (`core/data/extras.yaml`) | ✔ |
 | 4. App desktop Tauri 2 + instalador NSIS | ✔ — Release v0.1.0 publicada |
 | 5. Android | pendente |
@@ -85,6 +85,12 @@ Use `--dir <pasta>` ou a variável `UGS_BACKUP_DIR` para a pasta de backup. **Du
 ### Contextos (scan.rs `contexts`)
 Cada jogo é procurado em: cada instalação que casa (Steam id, GOG id, nome da pasta de `installDir`, ou jogo achado por exe nas pastas raiz) + contexto Steam sem instalação (saves do Steam Cloud em `userdata`) + contexto genérico (sem `<base>`). `when.store` é tolerante quando a loja é desconhecida; a existência no disco filtra.
 
+### Wine/Proton (Linux)
+- `Installed.prefix` = pasta que contém `drive_c`. Origens: Steam `steamapps/compatdata/<AppID>/pfx` (`stores::proton_prefix`), Heroic `GamesConfig/<app>.json → winePrefix` (ou `winePrefix/pfx` com Proton), Lutris `game.prefix` no `.yml`.
+- Um contexto com prefixo tem `vars` próprias (`wine_vars`): `<winAppData>` → `drive_c/users/<usuário>/AppData/Roaming` etc.; usuário = o do sistema ou `steamuser`. Nesse contexto as regras `when: os: windows` valem e o glob ignora maiúsculas.
+- Heroic: `~/.config/heroic` e Flatpak; GOG em `gog_store/installed.json` (appName = id GOG), Epic via `legendaryConfig/legendary/installed.json`. Lutris: `~/.config/lutris/games/*.yml`, `~/.local/share/lutris/games/` e Flatpak; `<base>` = pasta do `game.exe`.
+- ponytail: saves dentro de prefixo são generalizados como caminho Linux (`<home>/.local/share/Steam/...`), então restaurar um save de Windows dentro do Proton (ou o contrário) ainda não funciona — é a Fase 6. Registro do Wine (`user.reg`) não entra no backup.
+
 ### Invariantes de segurança (não quebrar)
 - **Backup**: arquivos lidos em streaming com hash; se o hash mudar entre a 1ª e a 2ª leitura, aborta ("mudou durante o backup"). Escreve `.zip.tmp` e renomeia. Se nada mudou, não cria snapshot e só atualiza a data do último zip (a UI usa essa data como "conferido em").
 - **Restore**: (1) extrai tudo para `<destino>.ugs-tmp` conferindo sha256 — originais intactos; (2) faz snapshot `-pre-restore` do estado atual; (3) só então renomeia. Qualquer erro antes do passo 3 apaga os temporários. Caminhos com `..` no mapping são rejeitados.
@@ -120,17 +126,19 @@ Cada jogo é procurado em: cada instalação que casa (Steam id, GOG id, nome da
 - `.codegraph/` é índice local de ferramenta — está no `.gitignore`.
 - O scan completo leva ~11–15 s (parse do manifesto + globs); o app faz isso fora da thread da UI.
 
-## Próximo passo: Fase 2 (Linux)
+## CI
 
-O código já compila pensando em Linux em vários pontos (`cfg(windows)` no registro e GOG; `Env` com `<xdgData>`/`<xdgConfig>`; Steam em `~/.local/share/Steam`). Falta:
-1. Steam: também `~/.steam/steam` e Flatpak `~/.var/app/com.valvesoftware.Steam/.local/share/Steam`.
-2. Proton: jogos Windows rodando no Linux salvam em `steamapps/compatdata/<AppID>/pfx/drive_c/users/steamuser/...` — mapear os placeholders Windows para dentro do prefixo (o Ludusavi faz isso).
-3. Heroic (`~/.config/heroic/`, prefixos em `~/Games/Heroic/Prefixes`) e Lutris (`~/.local/share/lutris/pga.db`).
-4. Pastas raiz: executáveis sem extensão e AppImage já estão em `extras.yaml`; testar.
-5. App Tauri no Linux: dependências `webkit2gtk-4.1`, `libayatana-appindicator3` (bandeja); empacotar AppImage/deb (`bundle.targets`).
-6. Testar as regras Linux/Flatpak do `extras.yaml` em máquina real (Steam Deck é o alvo principal).
+`.github/workflows/ci.yml`: em cada push na `main` e em PRs, roda `cargo test --workspace` e `cargo build -p ugs-app` no Ubuntu e no Windows. É a única verificação de build Linux disponível a partir da máquina Windows de desenvolvimento (o WSL dela não tem gcc).
 
-Depois: Fase 5 (Android) — ver PLANO.md §1.6 e §2.10 (Tauri 2 mobile + plugin Kotlin para SAF/Shizuku).
+## Linux: build e pendências
+
+- Dependências do app (Debian/Ubuntu): `libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libxdo-dev`.
+- Pacotes: `cd app/src-tauri && npx @tauri-apps/cli@2 build` gera AppImage e .deb (`tauri.linux.conf.json`).
+- Ainda não testado em máquina Linux real (Steam Deck é o alvo principal): detecção Steam/Proton/Heroic/Lutris, regras Linux/Flatpak do `extras.yaml`, bandeja no GNOME/KDE.
+
+## Próximo passo: Fase 5 (Android)
+
+Ver PLANO.md §1.6 e §2.10: Tauri 2 mobile + plugin Kotlin para SAF/Shizuku; `core` fica igual, com cópia SAF → cache do app → `std::fs`.
 
 ## Limitações conhecidas
 

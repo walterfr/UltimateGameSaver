@@ -90,14 +90,14 @@ pub fn find<'a>(manifest: &'a Manifest, name: &str) -> Option<(&'a String, &'a G
 pub fn resolve(name: &str, game: &Game, env: &Env, stores: &Stores) -> Found {
     let mut files = BTreeSet::new();
     let mut base = None;
-    for ctx in contexts(name, game, stores) {
+    for ctx in contexts(name, game, stores, env) {
         if base.is_none() {
             base = ctx.base.as_ref().map(PathBuf::from);
         }
         for (pattern, rule) in &game.files {
-            if applies(rule.as_ref(), ctx.store) {
+            if applies(rule.as_ref(), ctx.store, ctx.os()) {
                 if let Some(p) = expand(pattern, env, &ctx) {
-                    collect(&p, &mut files);
+                    collect(&p, &mut files, ctx.os() == "windows");
                 }
             }
         }
@@ -108,7 +108,7 @@ pub fn resolve(name: &str, game: &Game, env: &Env, stores: &Stores) -> Found {
                 for (key, patterns) in keys {
                     if let Some(dir) = cfg_dir(&text, key, &cfg) {
                         for p in patterns {
-                            collect(&format!("{}/{p}", Pattern::escape(&norm(&dir))), &mut files);
+                            collect(&format!("{}/{p}", Pattern::escape(&norm(&dir))), &mut files, cfg!(windows));
                         }
                     }
                 }
@@ -119,7 +119,7 @@ pub fn resolve(name: &str, game: &Game, env: &Env, stores: &Stores) -> Found {
     let registry = game
         .registry
         .iter()
-        .filter(|(k, r)| applies(r.as_ref(), None) && !k.contains('*') && reg_exists(k))
+        .filter(|(k, r)| applies(r.as_ref(), None, OS) && !k.contains('*') && reg_exists(k))
         .map(|(k, _)| k.clone())
         .collect();
     Found { name: name.to_string(), base, files: files.into_iter().collect(), registry }
@@ -132,18 +132,51 @@ struct Ctx {
     base: Option<String>,
     game: Option<String>,
     game_id: Option<String>,
+    /// Placeholders próprios deste contexto (prefixo Wine/Proton); têm prioridade sobre `Env`.
+    vars: Vec<(&'static str, String)>,
+}
+
+impl Ctx {
+    /// Dentro de um prefixo Wine as regras de Windows valem, mesmo rodando no Linux.
+    fn os(&self) -> &'static str {
+        if self.vars.is_empty() {
+            OS
+        } else {
+            "windows"
+        }
+    }
+}
+
+/// Pastas Windows dentro de um prefixo Wine/Proton (`<prefixo>/drive_c/users/<usuário>`).
+fn wine_vars(prefix: &Path, user: &str) -> Vec<(&'static str, String)> {
+    let c = prefix.join("drive_c");
+    let users = c.join("users");
+    let home = [user, "steamuser"].iter().map(|u| users.join(u)).find(|p| p.is_dir()).unwrap_or_else(|| users.join("steamuser"));
+    let h = norm(&home);
+    vec![
+        ("<home>", h.clone()),
+        ("<winAppData>", format!("{h}/AppData/Roaming")),
+        ("<winLocalAppData>", format!("{h}/AppData/Local")),
+        ("<winLocalAppDataLow>", format!("{h}/AppData/LocalLow")),
+        ("<winDocuments>", format!("{h}/Documents")),
+        ("<winPublic>", norm(&users.join("Public"))),
+        ("<winProgramData>", norm(&c.join("ProgramData"))),
+        ("<winDir>", norm(&c.join("windows"))),
+        ("<osUserName>", home.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default()),
+    ]
 }
 
 /// Uma combinação de loja/instalação por onde procurar; sempre inclui o contexto genérico.
-fn contexts(name: &str, game: &Game, stores: &Stores) -> Vec<Ctx> {
+fn contexts(name: &str, game: &Game, stores: &Stores, env: &Env) -> Vec<Ctx> {
     let steam_id = game.steam.as_ref().and_then(|i| i.id);
     let gog_id = game.gog.as_ref().and_then(|i| i.id);
+    let wine = |p: Option<&Path>| p.map(|p| wine_vars(p, &env.user)).unwrap_or_default();
     let mut v: Vec<Ctx> = stores
         .games
         .iter()
-        .filter(|g| match g.store {
-            Store::Other => g.game.as_deref() == Some(name),
-            _ => {
+        .filter(|g| match &g.game {
+            Some(found_for) => found_for == name,
+            None => {
                 (g.steam_id.is_some() && g.steam_id == steam_id)
                     || (g.gog_id.is_some() && g.gog_id == gog_id)
                     || game.install_dir.keys().any(|k| k.eq_ignore_ascii_case(&g.folder()))
@@ -158,15 +191,17 @@ fn contexts(name: &str, game: &Game, stores: &Stores) -> Vec<Ctx> {
             base: Some(norm(&g.dir)),
             game: Some(g.folder()),
             game_id: g.steam_id.or(g.gog_id).map(|i| i.to_string()),
+            vars: wine(g.prefix.as_deref()),
         })
         .collect();
-    // Steam Cloud (`<root>/userdata/...`) existe mesmo com o jogo desinstalado.
+    // Steam Cloud (`<root>/userdata/...`) e prefixo Proton existem mesmo com o jogo desinstalado.
     if let (Some(root), Some(id)) = (&stores.steam_root, steam_id) {
         if !v.iter().any(|c| c.store == Some(Store::Steam)) {
             v.push(Ctx {
                 store: Some(Store::Steam),
                 root: Some(norm(root)),
                 game_id: Some(id.to_string()),
+                vars: wine(crate::stores::proton_prefix(root, id).as_deref()),
                 ..Ctx::default()
             });
         }
@@ -175,11 +210,11 @@ fn contexts(name: &str, game: &Game, stores: &Stores) -> Vec<Ctx> {
     v
 }
 
-fn applies(rule: Option<&Rule>, store: Option<Store>) -> bool {
+fn applies(rule: Option<&Rule>, store: Option<Store>, os: &str) -> bool {
     let Some(r) = rule else { return true };
     r.when.is_empty()
         || r.when.iter().any(|w| {
-            w.os.as_deref().map_or(true, |os| os == OS)
+            w.os.as_deref().map_or(true, |o| o == os)
                 && w.store.as_deref().map_or(true, |st| store.map_or(true, |s| s.key() == st))
         })
 }
@@ -197,8 +232,11 @@ fn expand(pattern: &str, env: &Env, ctx: &Ctx) -> Option<String> {
             "<game>" => Pattern::escape(ctx.game.as_deref()?),
             "<storeGameId>" => ctx.game_id.clone().unwrap_or_else(|| "*".into()),
             "<storeUserId>" => "*".into(),
-            "<osUserName>" => Pattern::escape(&env.user),
-            ph => Pattern::escape(env.get(ph)?),
+            ph => match ctx.vars.iter().find(|(k, _)| *k == ph) {
+                Some((_, v)) => Pattern::escape(v),
+                None if ph == "<osUserName>" => Pattern::escape(&env.user),
+                None => Pattern::escape(env.get(ph)?),
+            },
         };
         out.push_str(&value);
         rest = &rest[j + 1..];
@@ -233,9 +271,10 @@ fn cfg_dir(text: &str, key: &str, cfg: &Path) -> Option<PathBuf> {
     dir.is_dir().then_some(dir)
 }
 
-fn collect(pattern: &str, out: &mut BTreeSet<PathBuf>) {
+/// `ignore_case`: no Windows e em prefixos Wine (regras de Windows) maiúsculas não importam.
+fn collect(pattern: &str, out: &mut BTreeSet<PathBuf>, ignore_case: bool) {
     let opts = MatchOptions {
-        case_sensitive: !cfg!(windows),
+        case_sensitive: !ignore_case,
         require_literal_separator: true,
         require_literal_leading_dot: false,
     };
@@ -337,6 +376,69 @@ mod tests {
         assert_eq!(names("RetroArch"), ["Zelda.srm"]);
         assert_eq!(names("mGBA"), ["Pokemon.sav"]);
         assert_eq!(resolve("Dolphin", &m["Dolphin"], &env, &st).base.as_deref(), Some(dolphin.as_path()));
+        fs::remove_dir_all(&t).unwrap();
+    }
+
+    /// Jogo Windows no Linux: regras de Windows resolvidas dentro do prefixo Proton/Heroic/Lutris.
+    #[test]
+    fn wine_prefixes() {
+        use stores::{Installed, Store, Stores};
+        let t = std::env::temp_dir().join(format!("ugs-wine-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&t);
+        let m = manifest::parse(
+            "Proton Game:\n  steam: {id: 123}\n  files:\n    \"<winAppData>/TestCo/*.dat\": {when: [{os: windows}]}\n\
+             Heroic Game:\n  gog: {id: 456}\n  files:\n    \"<winDocuments>/My Games/HG/*.sav\": {}\n",
+        )
+        .unwrap();
+        let env = Env { vars: vec![], user: "walter".into() };
+
+        // Steam + Proton: compatdata/<id>/pfx, usuário "steamuser"
+        let lib = t.join("lib");
+        let pfx = lib.join("steamapps/compatdata/123/pfx");
+        touch(&pfx.join("drive_c/users/steamuser/AppData/Roaming/TestCo/slot.dat"));
+        let game_dir = lib.join("steamapps/common/ProtonGame");
+        fs::create_dir_all(&game_dir).unwrap();
+        assert_eq!(stores::proton_prefix(&lib, 123).as_deref(), Some(pfx.as_path()));
+        let st = Stores {
+            games: vec![Installed { steam_id: Some(123), prefix: Some(pfx.clone()), ..Installed::new(Store::Steam, game_dir) }],
+            ..Default::default()
+        };
+        let f = resolve("Proton Game", &m["Proton Game"], &env, &st);
+        assert_eq!(f.files.len(), 1, "{:?}", f.files);
+
+        // Heroic (GOG) com prefixo Proton (`<winePrefix>/pfx`), usuário do sistema
+        let heroic = t.join("heroic");
+        let hpfx = t.join("Prefixes/HG");
+        touch(&hpfx.join("pfx/drive_c/users/walter/Documents/My Games/HG/save1.sav"));
+        let install = t.join("Games/HG");
+        fs::create_dir_all(&install).unwrap();
+        let write_json = |p: PathBuf, v: serde_json::Value| {
+            fs::create_dir_all(p.parent().unwrap()).unwrap();
+            fs::write(p, v.to_string()).unwrap();
+        };
+        write_json(heroic.join("gog_store/installed.json"), serde_json::json!({"installed": [{"appName": "456", "install_path": install}]}));
+        write_json(heroic.join("GamesConfig/456.json"), serde_json::json!({"456": {"winePrefix": hpfx}}));
+        let mut st = Stores::default();
+        stores::heroic(&heroic, &mut st);
+        assert_eq!(st.games.len(), 1);
+        assert_eq!(st.games[0].gog_id, Some(456));
+        assert_eq!(st.games[0].prefix.as_deref(), Some(hpfx.join("pfx").as_path()));
+        assert_eq!(resolve("Heroic Game", &m["Heroic Game"], &env, &st).files.len(), 1);
+
+        // Lutris: game.exe + game.prefix
+        let lpfx = t.join("lutris-pfx");
+        fs::create_dir_all(lpfx.join("drive_c")).unwrap();
+        let exe = lpfx.join("drive_c/Games/LG/lg.exe");
+        touch(&exe);
+        let games = t.join("lutris-games");
+        fs::create_dir_all(&games).unwrap();
+        fs::write(games.join("lg-1.yml"), format!("game:\n  exe: '{}'\n  prefix: '{}'\n", exe.display(), lpfx.display())).unwrap();
+        let mut st = Stores::default();
+        stores::lutris(&games, &mut st);
+        assert_eq!(st.games.len(), 1);
+        assert_eq!(st.games[0].folder(), "LG");
+        assert_eq!(st.games[0].prefix.as_deref(), Some(lpfx.as_path()));
+
         fs::remove_dir_all(&t).unwrap();
     }
 }

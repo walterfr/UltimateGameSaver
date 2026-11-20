@@ -35,9 +35,15 @@ pub struct Installed {
     pub gog_id: Option<u64>,
     /// Nome no manifesto, quando achado pelo executável.
     pub game: Option<String>,
+    /// Prefixo Wine/Proton (pasta que contém `drive_c`), para jogos Windows rodando no Linux.
+    pub prefix: Option<PathBuf>,
 }
 
 impl Installed {
+    pub fn new(store: Store, dir: PathBuf) -> Self {
+        Installed { store, dir, steam_id: None, gog_id: None, game: None, prefix: None }
+    }
+
     pub fn folder(&self) -> String {
         self.dir.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default()
     }
@@ -62,6 +68,15 @@ pub fn detect(roots: &[PathBuf], manifest: &Manifest) -> Stores {
     }
     epic(&mut s);
     gog(&mut s);
+    #[cfg(not(windows))]
+    if let Some(home) = dirs::home_dir() {
+        for h in [".config/heroic", ".var/app/com.heroicgameslauncher.hgl/config/heroic"] {
+            heroic(&home.join(h), &mut s);
+        }
+        for l in [".config/lutris/games", ".local/share/lutris/games", ".var/app/net.lutris.Lutris/data/lutris/games"] {
+            lutris(&home.join(l), &mut s);
+        }
+    }
     if !roots.is_empty() {
         let idx = RootIndex::new(manifest);
         let mut seen = HashSet::new();
@@ -135,13 +150,7 @@ fn walk_root(dir: &Path, depth: usize, idx: &RootIndex, s: &mut Stores, seen: &m
             if full.ends_with(&format!("/{rel}")) {
                 let Some(base) = f.ancestors().nth(rel.split('/').count()) else { continue };
                 if seen.insert((game.to_string(), norm(base).to_lowercase())) {
-                    s.games.push(Installed {
-                        store: Store::Other,
-                        dir: base.to_path_buf(),
-                        steam_id: None,
-                        gog_id: None,
-                        game: Some(game.to_string()),
-                    });
+                    s.games.push(Installed { game: Some(game.to_string()), ..Installed::new(Store::Other, base.into()) });
                 }
             }
         }
@@ -176,8 +185,21 @@ fn steam_root() -> Option<PathBuf> {
         .map(PathBuf::from)
         .unwrap_or_else(|_| PathBuf::from("C:/Program Files (x86)/Steam"));
     #[cfg(not(windows))]
-    let p = dirs::home_dir()?.join(".local/share/Steam");
+    let p = {
+        let home = dirs::home_dir()?;
+        // ~/.steam/steam costuma ser link para ~/.local/share/Steam; o Flatpak fica em ~/.var/app
+        [".local/share/Steam", ".steam/steam", ".var/app/com.valvesoftware.Steam/.local/share/Steam"]
+            .iter()
+            .map(|d| home.join(d))
+            .find(|p| p.join("steamapps").is_dir())?
+    };
     p.is_dir().then_some(p)
+}
+
+/// Prefixo Proton de um app Steam numa biblioteca, se existir.
+pub fn proton_prefix(lib: &Path, app_id: u64) -> Option<PathBuf> {
+    let p = lib.join("steamapps/compatdata").join(app_id.to_string()).join("pfx");
+    p.join("drive_c").is_dir().then_some(p)
 }
 
 fn steam(root: &Path, s: &mut Stores) {
@@ -199,7 +221,8 @@ fn steam(root: &Path, s: &mut Stores) {
             let dir = lib.join("steamapps/common").join(dir);
             // a biblioteca principal aparece duas vezes (registro + vdf)
             if dir.is_dir() && seen.insert(id) {
-                s.games.push(Installed { store: Store::Steam, dir, steam_id: id, gog_id: None, game: None });
+                let prefix = id.and_then(|id| proton_prefix(&lib, id));
+                s.games.push(Installed { steam_id: id, prefix, ..Installed::new(Store::Steam, dir) });
             }
         }
     }
@@ -226,7 +249,7 @@ fn epic(s: &mut Stores) {
             let Ok(t) = fs::read_to_string(e.path()) else { continue };
             let Ok(v) = serde_json::from_str::<serde_json::Value>(&t) else { continue };
             if let Some(loc) = v["InstallLocation"].as_str() {
-                s.games.push(Installed { store: Store::Epic, dir: loc.into(), steam_id: None, gog_id: None, game: None });
+                s.games.push(Installed::new(Store::Epic, loc.into()));
             }
         }
     }
@@ -243,12 +266,62 @@ fn gog(s: &mut Stores) {
         let Ok(k) = games.open_subkey(&name) else { continue };
         let Ok(path) = k.get_value::<String, _>("path") else { continue };
         let id = k.get_value::<String, _>("gameID").ok().and_then(|v| v.parse().ok());
-        s.games.push(Installed { store: Store::Gog, dir: path.into(), steam_id: None, gog_id: id, game: None });
+        s.games.push(Installed { gog_id: id, ..Installed::new(Store::Gog, path.into()) });
     }
 }
 
 #[cfg(not(windows))]
 fn gog(_: &mut Stores) {}
+
+/// Heroic Games Launcher (GOG e Epic via legendary). `heroic` = pasta de config do Heroic.
+pub fn heroic(heroic: &Path, s: &mut Stores) {
+    let json = |p: PathBuf| -> Option<serde_json::Value> { serde_json::from_str(&fs::read_to_string(p).ok()?).ok() };
+    // prefixo Wine configurado por jogo; com Proton o drive_c fica em <prefixo>/pfx
+    let prefix_of = |app: &str| -> Option<PathBuf> {
+        let p = PathBuf::from(json(heroic.join("GamesConfig").join(format!("{app}.json")))?[app]["winePrefix"].as_str()?);
+        [p.clone(), p.join("pfx")].into_iter().find(|x| x.join("drive_c").is_dir())
+    };
+
+    if let Some(v) = json(heroic.join("gog_store/installed.json")) {
+        for g in v["installed"].as_array().into_iter().flatten() {
+            let (Some(app), Some(path)) = (g["appName"].as_str(), g["install_path"].as_str()) else { continue };
+            s.games.push(Installed {
+                gog_id: app.parse().ok(),
+                prefix: prefix_of(app),
+                ..Installed::new(Store::Gog, path.into())
+            });
+        }
+    }
+    let legendary = [heroic.join("legendaryConfig/legendary/installed.json")]
+        .into_iter()
+        .chain(dirs::config_dir().map(|c| c.join("legendary/installed.json")));
+    for file in legendary {
+        let Some(v) = json(file) else { continue };
+        for (app, g) in v.as_object().into_iter().flatten() {
+            let Some(path) = g["install_path"].as_str() else { continue };
+            if !s.games.iter().any(|x| x.dir == Path::new(path)) {
+                s.games.push(Installed { prefix: prefix_of(app), ..Installed::new(Store::Epic, path.into()) });
+            }
+        }
+    }
+}
+
+/// Lutris: um `.yml` por jogo com `game.exe` e `game.prefix`.
+pub fn lutris(games_dir: &Path, s: &mut Stores) {
+    let Ok(rd) = fs::read_dir(games_dir) else { return };
+    for e in rd.flatten() {
+        if !e.path().extension().is_some_and(|x| x == "yml") {
+            continue;
+        }
+        let Ok(t) = fs::read_to_string(e.path()) else { continue };
+        let Ok(v) = serde_yaml::from_str::<serde_yaml::Value>(&t) else { continue };
+        let Some(exe) = v["game"]["exe"].as_str() else { continue };
+        let prefix = v["game"]["prefix"].as_str().map(PathBuf::from).filter(|p| p.join("drive_c").is_dir());
+        // ponytail: <base> = pasta do executável; jogos com exe em subpasta (bin/x64) casam pelo installDir só se o nome bater
+        let Some(dir) = Path::new(exe).parent() else { continue };
+        s.games.push(Installed { prefix, ..Installed::new(Store::Other, dir.into()) });
+    }
+}
 
 #[cfg(test)]
 mod tests {
