@@ -15,9 +15,16 @@ const OS: &str = if cfg!(windows) {
     "windows"
 } else if cfg!(target_os = "macos") {
     "mac"
+} else if cfg!(target_os = "android") {
+    "android"
 } else {
     "linux"
 };
+
+/// Armazenamento compartilhado do Android (`/storage/emulated/0`).
+pub fn android_storage() -> PathBuf {
+    std::env::var_os("EXTERNAL_STORAGE").map(PathBuf::from).unwrap_or_else(|| "/storage/emulated/0".into())
+}
 
 /// Pastas do usuário atual, usadas para expandir e generalizar caminhos.
 pub struct Env {
@@ -46,11 +53,18 @@ impl Env {
             add("<winProgramData>", env("ProgramData"));
             add("<winDir>", env("WINDIR"));
         }
-        #[cfg(not(windows))]
+        #[cfg(target_os = "android")]
+        {
+            // app Android não tem $HOME de usuário; saves ficam no armazenamento compartilhado
+            let _ = home;
+            add("<androidStorage>", Some(android_storage()));
+        }
+        #[cfg(not(any(windows, target_os = "android")))]
         {
             add("<xdgData>", dirs::data_dir());
             add("<xdgConfig>", dirs::config_dir());
         }
+        #[cfg(not(target_os = "android"))]
         add("<home>", home);
         let user = std::env::var("USERNAME").or_else(|_| std::env::var("USER")).unwrap_or_default();
         Env { vars, user }

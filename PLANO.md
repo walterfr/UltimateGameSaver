@@ -361,5 +361,5 @@ ultimate-game-saver/            (workspace Cargo)
 | 2 ✔ | Linux: XDG, Flatpak, Proton, Heroic/Lutris, AppImage/deb, CI Ubuntu (falta teste em máquina real) |
 | 3 ✔ | `core/data/extras.yaml` (emuladores + ports, um arquivo só), pastas raiz (`ugs root add`), detecção por executável, pasta custom lida do config, saves ao lado da ROM |
 | 4 ✔ | App Tauri desktop (`app/`): lista, um clique, bandeja, backup ao fechar o jogo. Rodar: `cargo run -p ugs-app` |
-| 5 | Android: plugin SAF, emuladores Android, depois Shizuku |
+| 5 ✔ | Android: "acesso a todos os arquivos" (em vez de SAF) + regras Android no extras.yaml; testado em tablet. Falta Shizuku para `Android/data` |
 | 6 | Remapeamento de IDs, sincronização PC ↔ Android, restante dos emuladores |

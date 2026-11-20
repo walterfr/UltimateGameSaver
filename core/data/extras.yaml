@@ -21,6 +21,8 @@ RetroArch:
     "<xdgConfig>/retroarch/states": {tags: [state]}
     "<home>/.var/app/org.libretro.RetroArch/config/retroarch/saves": {tags: [save]}
     "<home>/.var/app/org.libretro.RetroArch/config/retroarch/states": {tags: [state]}
+    "<androidStorage>/RetroArch/saves": {tags: [save]}
+    "<androidStorage>/RetroArch/states": {tags: [state]}
   configDirs:
     "<base>/retroarch.cfg": &ra_keys
       savefile_directory: ["**/*.srm", "**/*.sav", "**/*.mcd", "**/*.mcr", "**/*.rtc", "**/*.eep", "**/*.sra", "**/*.fla", "**/*.mpk", "**/*.dsv", "**/*.bkr", "**/*.bcr", "**/*.brm"]
@@ -49,6 +51,10 @@ Dolphin:
     "<home>/.var/app/org.DolphinEmu.dolphin-emu/data/dolphin-emu/GC": {tags: [save]}
     "<home>/.var/app/org.DolphinEmu.dolphin-emu/data/dolphin-emu/Wii/title/00010000": {tags: [save]}
     "<home>/.var/app/org.DolphinEmu.dolphin-emu/data/dolphin-emu/StateSaves": {tags: [state]}
+    # Android: Android/data só é legível com Shizuku/root (Android 11+)
+    "<androidStorage>/Android/data/org.dolphinemu.dolphinemu/files/GC": {tags: [save]}
+    "<androidStorage>/Android/data/org.dolphinemu.dolphinemu/files/Wii/title/00010000": {tags: [save]}
+    "<androidStorage>/Android/data/org.dolphinemu.dolphinemu/files/StateSaves": {tags: [state]}
 
 PCSX2:
   exe: [pcsx2-qt.exe, pcsx2.exe, pcsx2-qt]
@@ -81,6 +87,8 @@ DuckStation:
     "<xdgData>/duckstation/savestates": {tags: [state]}
     "<home>/.var/app/org.duckstation.DuckStation/data/duckstation/memcards": {tags: [save]}
     "<home>/.var/app/org.duckstation.DuckStation/data/duckstation/savestates": {tags: [state]}
+    "<androidStorage>/Android/data/com.github.stenzek.duckstation/files/memcards": {tags: [save]}
+    "<androidStorage>/Android/data/com.github.stenzek.duckstation/files/savestates": {tags: [state]}
 
 PPSSPP:
   exe: [PPSSPPWindows64.exe, PPSSPPWindows.exe, PPSSPPSDL]
@@ -93,6 +101,8 @@ PPSSPP:
     "<xdgConfig>/ppsspp/PSP/PPSSPP_STATE": {tags: [state]}
     "<home>/.var/app/org.ppsspp.PPSSPP/config/ppsspp/PSP/SAVEDATA": {tags: [save]}
     "<home>/.var/app/org.ppsspp.PPSSPP/config/ppsspp/PSP/PPSSPP_STATE": {tags: [state]}
+    "<androidStorage>/PSP/SAVEDATA": {tags: [save]}
+    "<androidStorage>/PSP/PPSSPP_STATE": {tags: [state]}
 
 RPCS3:
   exe: [rpcs3.exe, rpcs3]
@@ -266,11 +276,29 @@ Vita3K:
     "<base>/ux0/user/00/savedata": {tags: [save]}
     "<winAppData>/Vita3K/Vita3K/ux0/user/00/savedata": {tags: [save]}
     "<xdgData>/Vita3K/Vita3K/ux0/user/00/savedata": {tags: [save]}
+    "<androidStorage>/Android/data/org.vita3k.emulator/files/vita3k/ux0/user/00/savedata": {tags: [save]}
   configDirs:
     "<base>/config.yml": &vita_keys
       pref-path: ["ux0/user/00/savedata/**"]
     "<winAppData>/Vita3K/config.yml": *vita_keys
     "<xdgConfig>/Vita3K/config.yml": *vita_keys
+
+# ---------- Só Android ----------
+
+DraStic:
+  files:
+    "<androidStorage>/DraStic/backup": {tags: [save]}
+    "<androidStorage>/DraStic/savestates": {tags: [state]}
+
+AetherSX2:
+  files:
+    "<androidStorage>/Android/data/xyz.aethersx2.android/files/memcards": {tags: [save]}
+    "<androidStorage>/Android/data/xyz.aethersx2.android/files/sstates": {tags: [state]}
+
+Lemuroid:
+  files:
+    "<androidStorage>/Android/data/com.swordfish.lemuroid/files/saves": {tags: [save]}
+    "<androidStorage>/Android/data/com.swordfish.lemuroid/files/states": {tags: [state]}
 
 # ---------- Decomps, recomps e ports ----------
 # Entradas que já existem no manifesto só ganham `exe` (para achar <base> em ports portáteis).

@@ -25,17 +25,19 @@
       <section>
         <h3>Pasta dos backups</h3>
         <p class="hint">Coloque dentro do OneDrive, Google Drive ou Dropbox para ter cópia na nuvem.</p>
-        <div class="line"><code id="backup-dir"></code><button type="button" id="change-backup-dir">Alterar</button></div>
+        <div class="line"><code id="backup-dir"></code><button type="button" id="change-backup-dir" class="desktop-only">Alterar</button></div>
       </section>
 
-      <section>
+      <p id="android-hint" class="hint" hidden>Android: o app lê o armazenamento compartilhado (RetroArch, PPSSPP, DraStic…). Saves em <code>Android/data</code> de outros apps (Dolphin, DuckStation, AetherSX2…) ainda não são acessíveis — o Android 11+ bloqueia; suporte via Shizuku virá depois.</p>
+
+      <section class="desktop-only">
         <h3>Pastas raiz</h3>
         <p class="hint">Onde ficam emuladores portáteis, ports (decomps/recomps) e ROMs. Varridas até 6 níveis.</p>
         <ul id="roots" class="roots"></ul>
         <button type="button" id="add-root">Adicionar pasta</button>
       </section>
 
-      <section>
+      <section class="desktop-only">
         <h3>Manifesto de jogos</h3>
         <p class="hint">Lista de onde cada jogo de PC salva (PCGamingWiki, via Ludusavi).</p>
         <button type="button" id="update-manifest">Atualizar agora</button>

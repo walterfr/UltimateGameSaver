@@ -1,3 +1,5 @@
 /target
 /.codegraph
-/app/src-tauri/gen
+/app/src-tauri/gen/schemas
+node_modules/
+/app/src-tauri/gen/android/.kotlin

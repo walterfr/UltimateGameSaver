@@ -116,6 +116,8 @@ async function scan() {
 
 // ---- configurações ----
 function showSettings(s) {
+  document.querySelectorAll('.desktop-only').forEach((e) => { e.hidden = s.mobile; });
+  $('#android-hint').hidden = !s.mobile;
   $('#backup-dir').textContent = s.backup_dir;
   $('#roots').replaceChildren(...s.roots.map((dir) => {
     const b = el('button', { textContent: 'Remover' });

@@ -6,7 +6,7 @@ Leia junto com [PLANO.md](PLANO.md), que tem a pesquisa completa de onde ficam o
 ## O que é
 
 Organizador de saves de jogos de PC e emuladores: acha os saves, faz backup versionado em zip e restaura com um clique.
-Alvo: Windows (pronto), Linux e Android (planejados). Repo: https://github.com/walterfr/UltimateGameSaver
+Alvo: Windows (pronto), Linux (pronto, sem teste em máquina real) e Android (armazenamento compartilhado pronto). Repo: https://github.com/walterfr/UltimateGameSaver
 
 ## Estado atual
 
@@ -17,7 +17,7 @@ Alvo: Windows (pronto), Linux e Android (planejados). Repo: https://github.com/w
 | 3. Emuladores e ports (`core/data/extras.yaml`) | ✔ |
 | 4. App desktop Tauri 2 + instalador NSIS | ✔ — Release v0.1.0 publicada (só Windows, build local) |
 | Release automática (AppImage, .deb, NSIS pelo CI) | ✔ — Release v0.2.0 publicada com AppImage (79 MB), .deb (4,6 MB) e .exe (2,9 MB) gerados pelo `release.yml` |
-| 5. Android | pendente |
+| 5. Android (armazenamento compartilhado) | ✔ — testado num Lenovo Tab (Android 16): acha, faz backup e restaura saves de RetroArch e PPSSPP. Falta: `Android/data` (Shizuku), APK assinado na release |
 | 6. Remapeamento de IDs entre PCs/contas, sync PC ↔ Android | pendente |
 
 ## Estrutura
@@ -33,7 +33,12 @@ core/                   crate `ugs-core` (lib) — toda a lógica
   src/config.rs         Paths: pasta de dados, pastas raiz, pasta dos backups
 cli/                    crate `ugs` (binário de linha de comando)
 app/src-tauri/          crate `ugs-app` (Tauri 2): comandos, bandeja, monitor de processos
-app/ui/                 frontend HTML/CSS/JS puro, sem npm nem bundler
+  src/lib.rs            todo o app; `run_app()` é a entrada (mobile_entry_point no Android)
+  src/main.rs           só chama `ugs_app_lib::run_app()` no desktop
+  package.json          fixa a CLI do Tauri (o Gradle do Android chama `npm run tauri`)
+  gen/android/          projeto Android gerado por `tauri android init` — versionado e editado à mão
+                        (MainActivity.kt pede "acesso a todos os arquivos"; AndroidManifest.xml tem as permissões)
+app/ui/                 frontend HTML/CSS/JS puro, sem bundler
 PLANO.md                pesquisa + plano + roadmap
 ```
 
@@ -146,9 +151,23 @@ Cada jogo é procurado em: cada instalação que casa (Steam id, GOG id, nome da
 - Pacotes: `cd app/src-tauri && npx @tauri-apps/cli@2 build` gera AppImage e .deb (`tauri.linux.conf.json`).
 - Ainda não testado em máquina Linux real (Steam Deck é o alvo principal): detecção Steam/Proton/Heroic/Lutris, regras Linux/Flatpak do `extras.yaml`, bandeja no GNOME/KDE.
 
-## Próximo passo: Fase 5 (Android)
+## Android
 
-Ver PLANO.md §1.6 e §2.10: Tauri 2 mobile + plugin Kotlin para SAF/Shizuku; `core` fica igual, com cópia SAF → cache do app → `std::fs`.
+- **Acesso a arquivos:** em vez de SAF, o app pede a permissão nativa "Acesso a todos os arquivos" (`MANAGE_EXTERNAL_STORAGE`, Android 11+; `READ/WRITE_EXTERNAL_STORAGE` + `requestLegacyExternalStorage` até o Android 10). Com ela o `core` usa `std::fs` direto em `/storage/emulated/0`. Ok para APK distribuído fora da Play Store (a Play restringe essa permissão).
+- `Android/data/<pacote>` de outros apps continua bloqueado no Android 11+. As regras para Dolphin, DuckStation, AetherSX2, Lemuroid e Vita3K já estão no `extras.yaml` e passam a funcionar quando houver acesso (próximo passo: Shizuku).
+- Placeholder `<androidStorage>` (= `$EXTERNAL_STORAGE` ou `/storage/emulated/0`); `OS = "android"`; sem `<home>`/XDG.
+- No Android o app não baixa o manifesto de PC: usa só `extras.yaml` (`manifest::with_extras(Manifest::new())`).
+- Dados do app: `app.path().app_data_dir()`; backups em `/storage/emulated/0/UltimateGameSaver` (visível para Syncthing/Drive).
+- Sem bandeja, monitor de processos nem seletor de pasta (`#[cfg(desktop)]`); a UI esconde pastas raiz, troca de pasta de backup e manifesto (`Settings.mobile`). O plugin de diálogo é dependência só de desktop.
+- Sem `enableEdgeToEdge()` na `MainActivity` — a página não reserva espaço para a barra de status.
+- Build (Windows): `$env:ANDROID_HOME="$env:LOCALAPPDATA\Android\Sdk"; $env:NDK_HOME="$env:ANDROID_HOME\ndk\<versão>"; cd app/src-tauri; npm install; npm run tauri -- android build --debug --apk --target aarch64` → `gen/android/app/build/outputs/apk/universal/debug/app-universal-debug.apk` (~170 MB em debug).
+- Teste no aparelho: `adb install -r <apk>`; liberar permissão sem tocar na tela: `adb shell appops set io.github.walterfr.ultimategamesaver MANAGE_EXTERNAL_STORAGE allow`.
+- Aviso inofensivo no build: "Could not close incremental caches" do Kotlin (projeto em `X:` e cache do cargo em `C:`).
+
+## Próximo passo
+
+- Android: Shizuku para ler `Android/data`; APK release assinado anexado pelo `release.yml`; ícone próprio (`npm run tauri icon`).
+- Fase 6: remapear IDs entre PCs/contas e sincronizar PC ↔ Android (o `mapping.yaml` já usa placeholders).
 
 ## Limitações conhecidas
 

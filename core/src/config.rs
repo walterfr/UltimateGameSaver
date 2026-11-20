@@ -56,13 +56,19 @@ impl Paths {
         Ok(())
     }
 
-    /// Pasta dos backups (padrão: ~/Ultimate Game Saver). Pode ficar no OneDrive/Drive para ter nuvem.
+    /// Pasta dos backups (padrão: ~/Ultimate Game Saver; no Android, /storage/emulated/0/UltimateGameSaver).
+    /// Pode ficar no OneDrive/Drive/Syncthing para ter nuvem.
     pub fn backup_dir(&self) -> PathBuf {
+        let default = if cfg!(target_os = "android") {
+            Some(crate::scan::android_storage().join("UltimateGameSaver"))
+        } else {
+            dirs::home_dir().map(|h| h.join("Ultimate Game Saver"))
+        };
         fs::read_to_string(self.data.join("backup_dir.txt"))
             .ok()
             .map(|s| PathBuf::from(s.trim()))
             .filter(|p| !p.as_os_str().is_empty())
-            .or_else(|| dirs::home_dir().map(|h| h.join("Ultimate Game Saver")))
+            .or(default)
             .unwrap_or_else(|| PathBuf::from("Ultimate Game Saver"))
     }
 

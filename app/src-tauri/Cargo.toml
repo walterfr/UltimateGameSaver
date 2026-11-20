@@ -3,6 +3,11 @@ name = "ugs-app"
 version = "0.2.0"
 edition = "2021"
 
+# lib: o Android carrega o app como biblioteca nativa (cdylib)
+[lib]
+name = "ugs_app_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
 
@@ -11,5 +16,7 @@ anyhow = "1"
 serde = { version = "1", features = ["derive"] }
 # custom-protocol: embute ../ui no binário, então `cargo run` funciona sem a CLI do Tauri
 tauri = { version = "2", features = ["tray-icon", "custom-protocol"] }
-tauri-plugin-dialog = "2"
 ugs-core = { path = "../../core" }
+
+[target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
+tauri-plugin-dialog = "2"
