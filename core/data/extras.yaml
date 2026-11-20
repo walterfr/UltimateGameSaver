@@ -1,0 +1,336 @@
+# Regras próprias, no formato do manifesto do Ludusavi, aplicadas por cima dele.
+#
+# - files:      se presente, SUBSTITUI os files da entrada do manifesto (ids/installDir/launch ficam)
+# - exe:        caminho do executável relativo a <base>; achado nas pastas raiz (`ugs root add`)
+# - configDirs: arquivo de config -> chave -> padrões dentro da pasta que a chave aponta
+#               (valor ":\x" = relativo ao arquivo de config, "default"/vazio = ignorado)
+# - sidecar:    saves com o mesmo nome da ROM, na mesma pasta, achados nas pastas raiz
+#
+# Só saves e states — nada de cache, shaders, texturas, firmware ou jogos instalados.
+
+RetroArch:
+  exe: [retroarch.exe, retroarch]
+  files:
+    "<base>/saves": {tags: [save]}
+    "<base>/states": {tags: [state]}
+    "C:/RetroArch-Win64/saves": {tags: [save]}
+    "C:/RetroArch-Win64/states": {tags: [state]}
+    "<winAppData>/RetroArch/saves": {tags: [save]}
+    "<winAppData>/RetroArch/states": {tags: [state]}
+    "<xdgConfig>/retroarch/saves": {tags: [save]}
+    "<xdgConfig>/retroarch/states": {tags: [state]}
+    "<home>/.var/app/org.libretro.RetroArch/config/retroarch/saves": {tags: [save]}
+    "<home>/.var/app/org.libretro.RetroArch/config/retroarch/states": {tags: [state]}
+  configDirs:
+    "<base>/retroarch.cfg": &ra_keys
+      savefile_directory: ["**/*.srm", "**/*.sav", "**/*.mcd", "**/*.mcr", "**/*.rtc", "**/*.eep", "**/*.sra", "**/*.fla", "**/*.mpk", "**/*.dsv", "**/*.bkr", "**/*.bcr", "**/*.brm"]
+      savestate_directory: ["**/*.state*"]
+    "C:/RetroArch-Win64/retroarch.cfg": *ra_keys
+    "<winAppData>/RetroArch/retroarch.cfg": *ra_keys
+    "<xdgConfig>/retroarch/retroarch.cfg": *ra_keys
+    "<home>/.var/app/org.libretro.RetroArch/config/retroarch/retroarch.cfg": *ra_keys
+
+Dolphin:
+  exe: [Dolphin.exe, dolphin-emu]
+  files:
+    # GC = memory cards (GCI ou .raw); Wii/title/00010000 = saves de jogos de disco
+    "<base>/User/GC": {tags: [save]}
+    "<base>/User/Wii/title/00010000": {tags: [save]}
+    "<base>/User/StateSaves": {tags: [state]}
+    "<winDocuments>/Dolphin Emulator/GC": {tags: [save]}
+    "<winDocuments>/Dolphin Emulator/Wii/title/00010000": {tags: [save]}
+    "<winDocuments>/Dolphin Emulator/StateSaves": {tags: [state]}
+    "<winAppData>/Dolphin Emulator/GC": {tags: [save]}
+    "<winAppData>/Dolphin Emulator/Wii/title/00010000": {tags: [save]}
+    "<winAppData>/Dolphin Emulator/StateSaves": {tags: [state]}
+    "<xdgData>/dolphin-emu/GC": {tags: [save]}
+    "<xdgData>/dolphin-emu/Wii/title/00010000": {tags: [save]}
+    "<xdgData>/dolphin-emu/StateSaves": {tags: [state]}
+    "<home>/.var/app/org.DolphinEmu.dolphin-emu/data/dolphin-emu/GC": {tags: [save]}
+    "<home>/.var/app/org.DolphinEmu.dolphin-emu/data/dolphin-emu/Wii/title/00010000": {tags: [save]}
+    "<home>/.var/app/org.DolphinEmu.dolphin-emu/data/dolphin-emu/StateSaves": {tags: [state]}
+
+PCSX2:
+  exe: [pcsx2-qt.exe, pcsx2.exe, pcsx2-qt]
+  files:
+    "<base>/memcards": {tags: [save]}
+    "<base>/sstates": {tags: [state]}
+    "<winDocuments>/PCSX2/memcards": {tags: [save]}
+    "<winDocuments>/PCSX2/sstates": {tags: [state]}
+    "<xdgConfig>/PCSX2/memcards": {tags: [save]}
+    "<xdgConfig>/PCSX2/sstates": {tags: [state]}
+    "<home>/.var/app/net.pcsx2.PCSX2/config/PCSX2/memcards": {tags: [save]}
+    "<home>/.var/app/net.pcsx2.PCSX2/config/PCSX2/sstates": {tags: [state]}
+  configDirs:
+    "<winDocuments>/PCSX2/inis/PCSX2.ini": &pcsx2_keys
+      MemoryCards: ["**"]
+      Savestates: ["**"]
+    "<base>/inis/PCSX2.ini": *pcsx2_keys
+    "<xdgConfig>/PCSX2/inis/PCSX2.ini": *pcsx2_keys
+
+DuckStation:
+  exe: [duckstation-qt-x64-ReleaseLTCG.exe, duckstation-qt]
+  files:
+    "<base>/memcards": {tags: [save]}
+    "<base>/savestates": {tags: [state]}
+    "<winDocuments>/DuckStation/memcards": {tags: [save]}
+    "<winDocuments>/DuckStation/savestates": {tags: [state]}
+    "<winLocalAppData>/DuckStation/memcards": {tags: [save]}
+    "<winLocalAppData>/DuckStation/savestates": {tags: [state]}
+    "<xdgData>/duckstation/memcards": {tags: [save]}
+    "<xdgData>/duckstation/savestates": {tags: [state]}
+    "<home>/.var/app/org.duckstation.DuckStation/data/duckstation/memcards": {tags: [save]}
+    "<home>/.var/app/org.duckstation.DuckStation/data/duckstation/savestates": {tags: [state]}
+
+PPSSPP:
+  exe: [PPSSPPWindows64.exe, PPSSPPWindows.exe, PPSSPPSDL]
+  files:
+    "<base>/memstick/PSP/SAVEDATA": {tags: [save]}
+    "<base>/memstick/PSP/PPSSPP_STATE": {tags: [state]}
+    "<winDocuments>/PPSSPP/PSP/SAVEDATA": {tags: [save]}
+    "<winDocuments>/PPSSPP/PSP/PPSSPP_STATE": {tags: [state]}
+    "<xdgConfig>/ppsspp/PSP/SAVEDATA": {tags: [save]}
+    "<xdgConfig>/ppsspp/PSP/PPSSPP_STATE": {tags: [state]}
+    "<home>/.var/app/org.ppsspp.PPSSPP/config/ppsspp/PSP/SAVEDATA": {tags: [save]}
+    "<home>/.var/app/org.ppsspp.PPSSPP/config/ppsspp/PSP/PPSSPP_STATE": {tags: [state]}
+
+RPCS3:
+  exe: [rpcs3.exe, rpcs3]
+  files:
+    "<base>/dev_hdd0/home/*/savedata": {tags: [save]}
+    "<base>/dev_hdd0/home/*/trophy": {tags: [save]}
+    "<base>/savestates": {tags: [state]}
+    "<xdgConfig>/rpcs3/dev_hdd0/home/*/savedata": {tags: [save]}
+    "<xdgConfig>/rpcs3/dev_hdd0/home/*/trophy": {tags: [save]}
+    "<xdgConfig>/rpcs3/savestates": {tags: [state]}
+
+Cemu:
+  exe: [Cemu.exe, cemu]
+  files:
+    "<base>/mlc01/usr/save": {tags: [save]}
+    "<winAppData>/Cemu/mlc01/usr/save": {tags: [save]}
+    "<xdgData>/Cemu/mlc01/usr/save": {tags: [save]}
+    "<home>/.var/app/info.cemu.Cemu/data/Cemu/mlc01/usr/save": {tags: [save]}
+  configDirs:
+    "<base>/settings.xml": &cemu_keys
+      mlc_path: ["usr/save/**"]
+    "<winAppData>/Cemu/settings.xml": *cemu_keys
+    "<xdgConfig>/Cemu/settings.xml": *cemu_keys
+
+Ryujinx:
+  exe: [Ryujinx.exe, Ryujinx]
+  files:
+    # system/save/8000000000000000 = índice que liga cada pasta de save ao jogo
+    "<base>/portable/bis/user/save": {tags: [save]}
+    "<base>/portable/bis/system/save/8000000000000000": {tags: [save]}
+    "<winAppData>/Ryujinx/bis/user/save": {tags: [save]}
+    "<winAppData>/Ryujinx/bis/system/save/8000000000000000": {tags: [save]}
+    "<xdgConfig>/Ryujinx/bis/user/save": {tags: [save]}
+    "<xdgConfig>/Ryujinx/bis/system/save/8000000000000000": {tags: [save]}
+    "<home>/.var/app/io.github.ryubing.Ryujinx/config/Ryujinx/bis/user/save": {tags: [save]}
+    "<home>/.var/app/io.github.ryubing.Ryujinx/config/Ryujinx/bis/system/save/8000000000000000": {tags: [save]}
+
+Yuzu:
+  exe: [yuzu.exe, yuzu]
+  files:
+    "<base>/user/nand/user/save": {tags: [save]}
+    "<winAppData>/yuzu/nand/user/save": {tags: [save]}
+    "<xdgData>/yuzu/nand/user/save": {tags: [save]}
+  configDirs:
+    "<base>/user/config/qt-config.ini": &nand_keys
+      nand_directory: ["user/save/**"]
+    "<winAppData>/yuzu/config/qt-config.ini": *nand_keys
+    "<xdgConfig>/yuzu/qt-config.ini": *nand_keys
+
+Suyu:
+  exe: [suyu.exe, suyu]
+  files:
+    "<base>/user/nand/user/save": {tags: [save]}
+    "<winAppData>/suyu/nand/user/save": {tags: [save]}
+    "<xdgData>/suyu/nand/user/save": {tags: [save]}
+  configDirs:
+    "<base>/user/config/qt-config.ini": *nand_keys
+    "<winAppData>/suyu/config/qt-config.ini": *nand_keys
+    "<xdgConfig>/suyu/qt-config.ini": *nand_keys
+
+Sudachi:
+  exe: [sudachi.exe, sudachi]
+  files:
+    "<base>/user/nand/user/save": {tags: [save]}
+    "<winAppData>/sudachi/nand/user/save": {tags: [save]}
+    "<xdgData>/sudachi/nand/user/save": {tags: [save]}
+  configDirs:
+    "<base>/user/config/qt-config.ini": *nand_keys
+    "<winAppData>/sudachi/config/qt-config.ini": *nand_keys
+    "<xdgConfig>/sudachi/qt-config.ini": *nand_keys
+
+Citron:
+  exe: [citron.exe, citron]
+  files:
+    "<base>/user/nand/user/save": {tags: [save]}
+    "<winAppData>/citron/nand/user/save": {tags: [save]}
+    "<xdgData>/citron/nand/user/save": {tags: [save]}
+  configDirs:
+    "<base>/user/config/qt-config.ini": *nand_keys
+    "<winAppData>/citron/config/qt-config.ini": *nand_keys
+    "<xdgConfig>/citron/qt-config.ini": *nand_keys
+
+Eden:
+  exe: [eden.exe, eden]
+  files:
+    "<base>/user/nand/user/save": {tags: [save]}
+    "<winAppData>/eden/nand/user/save": {tags: [save]}
+    "<xdgData>/eden/nand/user/save": {tags: [save]}
+  configDirs:
+    "<base>/user/config/qt-config.ini": *nand_keys
+    "<winAppData>/eden/config/qt-config.ini": *nand_keys
+    "<xdgConfig>/eden/qt-config.ini": *nand_keys
+
+# 3DS: title/*/*/content são jogos instalados (GBs) — só data/ e extdata/
+Azahar:
+  exe: [azahar.exe, azahar]
+  files:
+    "<base>/user/sdmc/Nintendo 3DS/*/*/title/*/*/data": {tags: [save]}
+    "<base>/user/sdmc/Nintendo 3DS/*/*/extdata": {tags: [save]}
+    "<base>/user/states": {tags: [state]}
+    "<winAppData>/Azahar/sdmc/Nintendo 3DS/*/*/title/*/*/data": {tags: [save]}
+    "<winAppData>/Azahar/sdmc/Nintendo 3DS/*/*/extdata": {tags: [save]}
+    "<winAppData>/Azahar/states": {tags: [state]}
+    "<xdgData>/azahar-emu/sdmc/Nintendo 3DS/*/*/title/*/*/data": {tags: [save]}
+    "<xdgData>/azahar-emu/sdmc/Nintendo 3DS/*/*/extdata": {tags: [save]}
+    "<xdgData>/azahar-emu/states": {tags: [state]}
+
+Citra:
+  exe: [citra-qt.exe, citra-qt]
+  files:
+    "<base>/user/sdmc/Nintendo 3DS/*/*/title/*/*/data": {tags: [save]}
+    "<base>/user/sdmc/Nintendo 3DS/*/*/extdata": {tags: [save]}
+    "<base>/user/states": {tags: [state]}
+    "<winAppData>/Citra/sdmc/Nintendo 3DS/*/*/title/*/*/data": {tags: [save]}
+    "<winAppData>/Citra/sdmc/Nintendo 3DS/*/*/extdata": {tags: [save]}
+    "<winAppData>/Citra/states": {tags: [state]}
+    "<xdgData>/citra-emu/sdmc/Nintendo 3DS/*/*/title/*/*/data": {tags: [save]}
+    "<xdgData>/citra-emu/sdmc/Nintendo 3DS/*/*/extdata": {tags: [save]}
+    "<xdgData>/citra-emu/states": {tags: [state]}
+
+Lime3DS:
+  exe: [lime3ds.exe, lime3ds-gui.exe, lime3ds]
+  files:
+    "<base>/user/sdmc/Nintendo 3DS/*/*/title/*/*/data": {tags: [save]}
+    "<base>/user/sdmc/Nintendo 3DS/*/*/extdata": {tags: [save]}
+    "<base>/user/states": {tags: [state]}
+    "<winAppData>/Lime3DS/sdmc/Nintendo 3DS/*/*/title/*/*/data": {tags: [save]}
+    "<winAppData>/Lime3DS/sdmc/Nintendo 3DS/*/*/extdata": {tags: [save]}
+    "<winAppData>/Lime3DS/states": {tags: [state]}
+    "<xdgData>/lime3ds-emu/sdmc/Nintendo 3DS/*/*/title/*/*/data": {tags: [save]}
+    "<xdgData>/lime3ds-emu/sdmc/Nintendo 3DS/*/*/extdata": {tags: [save]}
+    "<xdgData>/lime3ds-emu/states": {tags: [state]}
+
+# content/<perfil>/<TitleID>/00000001 = saves (00000002 = DLC, 000B0000 = updates)
+Xenia:
+  exe: [xenia.exe, xenia_canary.exe]
+  files:
+    "<base>/content/*/*/00000001": {tags: [save]}
+    "<winDocuments>/Xenia/content/*/*/00000001": {tags: [save]}
+
+mGBA:
+  exe: [mGBA.exe, mgba-qt]
+  files:
+    "<base>/saves": {tags: [save]}
+  configDirs:
+    "<base>/config.ini": &mgba_keys
+      savegamePath: ["*.sav"]
+      savestatePath: ["*.ss*"]
+    "<winAppData>/mGBA/config.ini": *mgba_keys
+    "<xdgConfig>/mgba/config.ini": *mgba_keys
+  sidecar:
+    roms: [gba, gb, gbc, sgb]
+    saves: [sav, ss0, ss1, ss2, ss3, ss4, ss5, ss6, ss7, ss8, ss9]
+
+melonDS:
+  exe: [melonDS.exe, melonDS]
+  configDirs:
+    "<base>/melonDS.toml": &melonds_keys
+      SaveFilePath: ["*.sav"]
+      SavestatePath: ["*.ml*"]
+    "<base>/melonDS.ini": *melonds_keys
+    "<winAppData>/melonDS/melonDS.toml": *melonds_keys
+    "<xdgConfig>/melonDS/melonDS.toml": *melonds_keys
+  sidecar:
+    roms: [nds, dsi]
+    saves: [sav, ml1, ml2, ml3, ml4, ml5, ml6, ml7, ml8]
+
+Vita3K:
+  exe: [Vita3K.exe, Vita3K]
+  files:
+    "<base>/ux0/user/00/savedata": {tags: [save]}
+    "<winAppData>/Vita3K/Vita3K/ux0/user/00/savedata": {tags: [save]}
+    "<xdgData>/Vita3K/Vita3K/ux0/user/00/savedata": {tags: [save]}
+  configDirs:
+    "<base>/config.yml": &vita_keys
+      pref-path: ["ux0/user/00/savedata/**"]
+    "<winAppData>/Vita3K/config.yml": *vita_keys
+    "<xdgConfig>/Vita3K/config.yml": *vita_keys
+
+# ---------- Decomps, recomps e ports ----------
+# Entradas que já existem no manifesto só ganham `exe` (para achar <base> em ports portáteis).
+
+"The Legend of Zelda: Ocarina of Time (Ship of Harkinian)":
+  exe: [soh.exe, soh.appimage]
+
+"The Legend of Zelda: Majora's Mask (2 Ship 2 Harkinian)":
+  exe: [2ship.exe, 2ship.appimage]
+
+"The Legend of Zelda: A Link to the Past (zelda3)":
+  exe: [zelda3.exe, zelda3]
+  files:
+    "<base>/saves": {tags: [save]}
+
+"Super Mario World (smw)":
+  exe: [smw.exe, smw]
+  files:
+    "<base>/saves": {tags: [save]}
+
+"Super Metroid (sm)":
+  exe: [sm.exe, sm]
+  files:
+    "<base>/saves": {tags: [save]}
+
+"Super Mario 64 (sm64ex)":
+  exe: [sm64ex.exe, sm64.us.f3dex2e.exe]
+  files:
+    "<winAppData>/sm64ex/sm64_save_file.bin": {tags: [save]}
+    "<xdgData>/sm64ex/sm64_save_file.bin": {tags: [save]}
+    "<base>/sm64_save_file.bin": {tags: [save]}
+
+"Super Mario 64 (sm64coopdx)":
+  exe: [sm64coopdx.exe, sm64coopdx]
+  files:
+    "<winAppData>/sm64coopdx/sm64_save_file*.bin": {tags: [save]}
+    "<xdgData>/sm64coopdx/sm64_save_file*.bin": {tags: [save]}
+
+"Jak and Daxter (OpenGOAL)":
+  exe: [gk.exe, gk]
+  files:
+    "<winAppData>/OpenGOAL/*/saves": {tags: [save]}
+    "<xdgData>/OpenGOAL/*/saves": {tags: [save]}
+
+"Diablo (DevilutionX)":
+  exe: [devilutionx.exe, devilutionx]
+  files:
+    "<winAppData>/diasurgical/devilution/*.sv": {tags: [save]}
+    "<winAppData>/diasurgical/devilution/*.hsv": {tags: [save]}
+    "<xdgData>/diasurgical/devilution/*.sv": {tags: [save]}
+    "<xdgData>/diasurgical/devilution/*.hsv": {tags: [save]}
+
+"Morrowind (OpenMW)":
+  exe: [openmw.exe, openmw]
+  files:
+    "<winDocuments>/My Games/OpenMW/saves": {tags: [save]}
+    "<xdgData>/openmw/saves": {tags: [save]}
+
+"X-COM (OpenXcom)":
+  exe: [OpenXcom.exe, openxcom]
+  files:
+    "<winDocuments>/OpenXcom/**/*.sav": {tags: [save]}
+    "<xdgData>/openxcom/**/*.sav": {tags: [save]}
