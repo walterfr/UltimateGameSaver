@@ -16,7 +16,7 @@ Alvo: Windows (pronto), Linux e Android (planejados). Repo: https://github.com/w
 | 2. Linux (Steam/Flatpak, Proton, Heroic, Lutris, AppImage/deb) | ✔ no código e no CI — **falta testar em máquina Linux real** |
 | 3. Emuladores e ports (`core/data/extras.yaml`) | ✔ |
 | 4. App desktop Tauri 2 + instalador NSIS | ✔ — Release v0.1.0 publicada (só Windows, build local) |
-| Release automática (AppImage, .deb, NSIS pelo CI) | workflow pronto, versão 0.2.0 no código — **falta publicar a release v0.2.0 e conferir os anexos** (ver "Releases") |
+| Release automática (AppImage, .deb, NSIS pelo CI) | ✔ — Release v0.2.0 publicada com AppImage (79 MB), .deb (4,6 MB) e .exe (2,9 MB) gerados pelo `release.yml` |
 | 5. Android | pendente |
 | 6. Remapeamento de IDs entre PCs/contas, sync PC ↔ Android | pendente |
 
@@ -126,7 +126,7 @@ Cada jogo é procurado em: cada instalação que casa (Steam id, GOG id, nome da
   (sem anexos — o workflow anexa). Conferir em Actions → Release e `gh release view v<versão>`.
 - Refazer anexos de uma release existente: Actions → Release → Run workflow → informar a tag.
 - Notas em português; avisar que o instalador Windows **não é assinado** (SmartScreen) e que o Linux é experimental até ser testado em máquina real.
-- Próxima release pendente: **v0.2.0** (suporte a Linux). Notas sugeridas: Linux (Steam/Flatpak, Proton, Heroic, Lutris), AppImage e .deb, instalador Windows, limitações (Linux não testado em máquina real; save de Windows não restaura dentro do Proton ainda).
+- Última release: **v0.2.0** (suporte a Linux), anexos gerados pelo workflow sem erro. Próxima versão: 0.3.0.
 
 ## Pegadinhas do ambiente (Windows)
 
