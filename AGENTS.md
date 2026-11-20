@@ -15,7 +15,8 @@ Alvo: Windows (pronto), Linux e Android (planejados). Repo: https://github.com/w
 | 1. Motor + CLI no Windows (manifesto, Steam/Epic/GOG, backup/restore) | ✔ |
 | 2. Linux (Steam/Flatpak, Proton, Heroic, Lutris, AppImage/deb) | ✔ no código e no CI — **falta testar em máquina Linux real** |
 | 3. Emuladores e ports (`core/data/extras.yaml`) | ✔ |
-| 4. App desktop Tauri 2 + instalador NSIS | ✔ — Release v0.1.0 publicada |
+| 4. App desktop Tauri 2 + instalador NSIS | ✔ — Release v0.1.0 publicada (só Windows, build local) |
+| Release automática (AppImage, .deb, NSIS pelo CI) | workflow pronto, versão 0.2.0 no código — **falta publicar a release v0.2.0 e conferir os anexos** (ver "Releases") |
 | 5. Android | pendente |
 | 6. Remapeamento de IDs entre PCs/contas, sync PC ↔ Android | pendente |
 
@@ -115,8 +116,17 @@ Cada jogo é procurado em: cada instalação que casa (Steam id, GOG id, nome da
 - Mínimo de dependências e de código: preferir stdlib e recursos nativos (ex.: `reg.exe` para registro, seletor de pasta nativo, `<dialog>` HTML). Simplificações deliberadas levam comentário `ponytail:` dizendo o limite e como evoluir.
 - Testes: um teste pequeno por lógica não trivial, sem frameworks. **Testes têm que ser herméticos** — regras com caminho fixo (ex.: `C:/RetroArch-Win64`) acham coisas reais da máquina; filtre resultados pela pasta temporária do teste.
 - Commits no estilo Conventional Commits (`feat:`, `fix:`, `build:`, `docs:`), mensagem em português.
-- Versão: alterar em `app/src-tauri/tauri.conf.json` e nos três `Cargo.toml`.
-- Release: gerar o instalador, copiar para um nome sem espaços (`UltimateGameSaver_<versão>_x64-setup.exe`) e `gh release create v<versão> <arquivo> --notes-file <notas>`. O instalador **não é assinado** (SmartScreen avisa).
+- Versão: alterar em `app/src-tauri/tauri.conf.json` e nos três `Cargo.toml` (atual: 0.2.0).
+
+## Releases
+
+- `.github/workflows/release.yml` roda quando uma release é **publicada** no GitHub: compila em `ubuntu-22.04` (AppImage + .deb; 22.04 pela glibc mais antiga) e `windows-latest` (NSIS), troca espaços do nome por `UltimateGameSaver_...` e anexa com `gh release upload --clobber`.
+- Publicar: subir a versão, commit + push, depois
+  `gh release create v<versão> --target main --title "Ultimate Game Saver <versão>" --notes-file <notas.md>`
+  (sem anexos — o workflow anexa). Conferir em Actions → Release e `gh release view v<versão>`.
+- Refazer anexos de uma release existente: Actions → Release → Run workflow → informar a tag.
+- Notas em português; avisar que o instalador Windows **não é assinado** (SmartScreen) e que o Linux é experimental até ser testado em máquina real.
+- Próxima release pendente: **v0.2.0** (suporte a Linux). Notas sugeridas: Linux (Steam/Flatpak, Proton, Heroic, Lutris), AppImage e .deb, instalador Windows, limitações (Linux não testado em máquina real; save de Windows não restaura dentro do Proton ainda).
 
 ## Pegadinhas do ambiente (Windows)
 
@@ -128,7 +138,7 @@ Cada jogo é procurado em: cada instalação que casa (Steam id, GOG id, nome da
 
 ## CI
 
-`.github/workflows/ci.yml`: em cada push na `main` e em PRs, roda `cargo test --workspace` e `cargo build -p ugs-app` no Ubuntu e no Windows. É a única verificação de build Linux disponível a partir da máquina Windows de desenvolvimento (o WSL dela não tem gcc).
+`.github/workflows/ci.yml`: em cada push na `main` e em PRs, roda `cargo test --workspace` e `cargo build -p ugs-app` no Ubuntu e no Windows. É a única verificação de build Linux disponível a partir da máquina Windows de desenvolvimento (o WSL dela não tem gcc; `cargo check --target x86_64-unknown-linux-gnu` falha no `ring`, que precisa de compilador C). Último run verde: commit `7b7aae6` (5 testes nos dois sistemas).
 
 ## Linux: build e pendências
 
