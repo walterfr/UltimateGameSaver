@@ -3,6 +3,7 @@ use clap::{Parser, Subcommand};
 use std::path::PathBuf;
 use ugs_core::{
     archive::{self, Outcome},
+    config::Paths,
     manifest,
     scan::{self, Env},
     stores,
@@ -11,7 +12,7 @@ use ugs_core::{
 #[derive(Parser)]
 #[command(name = "ugs", version, about = "Ultimate Game Saver — backup e restauração de saves")]
 struct Cli {
-    /// Pasta dos backups (padrão: ~/Ultimate Game Saver)
+    /// Pasta dos backups (padrão: a escolhida no app, ou ~/Ultimate Game Saver)
     #[arg(long, global = true, env = "UGS_BACKUP_DIR")]
     dir: Option<PathBuf>,
     #[command(subcommand)]
@@ -58,34 +59,19 @@ enum RootCmd {
 
 fn main() -> Result<()> {
     let cli = Cli::parse();
-    let root = match cli.dir {
-        Some(d) => d,
-        None => dirs::home_dir().context("pasta do usuário não encontrada")?.join("Ultimate Game Saver"),
-    };
-    let data = dirs::data_local_dir().context("pasta de dados não encontrada")?.join("UltimateGameSaver");
-    let manifest_path = data.join("manifest.yaml");
-    let roots_path = data.join("roots.txt");
-    let roots: Vec<PathBuf> =
-        std::fs::read_to_string(&roots_path).unwrap_or_default().lines().filter(|l| !l.trim().is_empty()).map(PathBuf::from).collect();
+    let paths = Paths::new()?;
+    let root = cli.dir.unwrap_or_else(|| paths.backup_dir());
+    let manifest_path = paths.manifest();
+    let roots = paths.roots();
     let detect = |m: &manifest::Manifest| stores::detect(&roots, m);
 
     match cli.cmd {
         Cmd::Root { action } => {
-            let mut list = roots.clone();
-            match action {
-                None => {}
-                Some(RootCmd::Add { dir }) => {
-                    let dir = std::fs::canonicalize(&dir).with_context(|| format!("pasta não existe: {}", dir.display()))?;
-                    // canonicalize no Windows devolve \\?\C:\...
-                    let dir = PathBuf::from(dir.to_string_lossy().trim_start_matches(r"\\?\"));
-                    if !list.contains(&dir) {
-                        list.push(dir);
-                    }
-                }
-                Some(RootCmd::Remove { dir }) => list.retain(|r| r != &dir),
-            }
-            std::fs::create_dir_all(&data)?;
-            std::fs::write(&roots_path, list.iter().map(|r| format!("{}\n", r.display())).collect::<String>())?;
+            let list = match action {
+                None => roots.clone(),
+                Some(RootCmd::Add { dir }) => paths.add_root(&dir)?,
+                Some(RootCmd::Remove { dir }) => paths.remove_root(&dir)?,
+            };
             for r in &list {
                 println!("{}", r.display());
             }

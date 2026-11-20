@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ultimate Game Saver</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>Ultimate Game Saver</h1>
+    <input id="search" type="search" placeholder="Buscar jogo…" aria-label="Buscar jogo">
+    <button id="rescan" title="Procurar saves de novo">Escanear</button>
+    <button id="backup-all" class="primary">Backup de tudo</button>
+    <button id="open-settings" title="Configurações" aria-label="Configurações">⚙</button>
+  </header>
+
+  <p id="summary" class="summary">Escaneando… (na primeira vez o manifesto de jogos é baixado)</p>
+  <ul id="list" class="list" aria-live="polite"></ul>
+
+  <dialog id="settings">
+    <form method="dialog">
+      <h2>Configurações</h2>
+
+      <section>
+        <h3>Pasta dos backups</h3>
+        <p class="hint">Coloque dentro do OneDrive, Google Drive ou Dropbox para ter cópia na nuvem.</p>
+        <div class="line"><code id="backup-dir"></code><button type="button" id="change-backup-dir">Alterar</button></div>
+      </section>
+
+      <section>
+        <h3>Pastas raiz</h3>
+        <p class="hint">Onde ficam emuladores portáteis, ports (decomps/recomps) e ROMs. Varridas até 6 níveis.</p>
+        <ul id="roots" class="roots"></ul>
+        <button type="button" id="add-root">Adicionar pasta</button>
+      </section>
+
+      <section>
+        <h3>Manifesto de jogos</h3>
+        <p class="hint">Lista de onde cada jogo de PC salva (PCGamingWiki, via Ludusavi).</p>
+        <button type="button" id="update-manifest">Atualizar agora</button>
+      </section>
+
+      <div class="dialog-actions"><button class="primary">Fechar</button></div>
+    </form>
+  </dialog>
+
+  <div id="toasts" class="toasts" role="status"></div>
+  <script src="app.js"></script>
+</body>
+</html>

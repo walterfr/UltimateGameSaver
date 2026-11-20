@@ -95,6 +95,8 @@ pub fn backup(found: &Found, env: &Env, root: &Path, suffix: &str) -> Result<Out
     if let Some(last) = existing.last() {
         let prev = read_mapping(last)?;
         if prev.files == mapping.files && prev.registry == mapping.registry {
+            // data do zip = "conferido em", para a UI não marcar como alterado após um restore
+            let _ = fs::File::options().append(true).open(last).and_then(|f| f.set_modified(SystemTime::now()));
             return Ok(Outcome::Unchanged);
         }
     }
@@ -215,13 +217,26 @@ pub fn restore(current: &Found, env: &Env, root: &Path, snapshot: Option<&str>) 
 /// Executáveis em execução dentro de `dir` (jogo aberto = não restaurar).
 pub fn running_under(dir: &Path) -> Vec<String> {
     let dir = norm(dir);
+    running_exes().into_iter().filter(|e| is_under(e, &dir)).collect()
+}
+
+/// Caminhos (com `/`) dos executáveis em execução.
+pub fn running_exes() -> Vec<String> {
     let mut sys = sysinfo::System::new();
     sys.refresh_processes(sysinfo::ProcessesToUpdate::All, true);
-    sys.processes()
-        .values()
-        .filter_map(|p| p.exe())
-        .map(norm)
-        .filter(|e| is_under(e, &dir))
+    sys.processes().values().filter_map(|p| p.exe()).map(norm).collect()
+}
+
+/// Nomes dos jogos que têm snapshots em `root` (inclusive os sem saves no PC agora).
+pub fn backed_up_games(root: &Path) -> Vec<String> {
+    let Ok(rd) = fs::read_dir(root) else { return vec![] };
+    rd.flatten()
+        .filter(|e| e.path().is_dir())
+        .filter_map(|e| {
+            let mut v: Vec<PathBuf> = fs::read_dir(e.path()).ok()?.flatten().map(|x| x.path()).filter(|p| p.extension().is_some_and(|x| x == "zip")).collect();
+            v.sort();
+            read_mapping(v.last()?).ok().map(|m| m.game)
+        })
         .collect()
 }
 

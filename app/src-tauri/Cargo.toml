@@ -1,0 +1,15 @@
+[package]
+name = "ugs-app"
+version = "0.1.0"
+edition = "2021"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+anyhow = "1"
+serde = { version = "1", features = ["derive"] }
+# custom-protocol: embute ../ui no binário, então `cargo run` funciona sem a CLI do Tauri
+tauri = { version = "2", features = ["tray-icon", "custom-protocol"] }
+tauri-plugin-dialog = "2"
+ugs-core = { path = "../../core" }
